@@ -1,7 +1,7 @@
-import Anthropic from "@anthropic-ai/sdk";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 import { NextRequest, NextResponse } from "next/server";
 
-const anthropic = new Anthropic();
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 
 const SYSTEM_PROMPT = `あなたはお酒に異常に詳しい「酒の達人」です。
 ユーザーからお酒の名前や画像を受け取ったら、そのお酒について「知ったかぶり」できるウンチク情報を生成してください。
@@ -38,53 +38,42 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const content: Anthropic.MessageCreateParams["messages"][0]["content"] = [];
+    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+
+    const parts: Array<{ text: string } | { inlineData: { mimeType: string; data: string } }> = [];
 
     if (image) {
       const base64Match = image.match(
         /^data:(image\/[a-zA-Z+]+);base64,(.+)$/
       );
       if (base64Match) {
-        content.push({
-          type: "image",
-          source: {
-            type: "base64",
-            media_type: base64Match[1] as
-              | "image/jpeg"
-              | "image/png"
-              | "image/gif"
-              | "image/webp",
+        parts.push({
+          inlineData: {
+            mimeType: base64Match[1],
             data: base64Match[2],
           },
         });
       }
-      content.push({
-        type: "text",
+      parts.push({
         text: name
           ? `この画像のお酒について教えてください。名前は「${name}」です。`
           : "この画像のお酒について教えてください。画像からお酒を特定して回答してください。",
       });
     } else {
-      content.push({
-        type: "text",
+      parts.push({
         text: `「${name}」というお酒について教えてください。`,
       });
     }
 
-    const message = await anthropic.messages.create({
-      model: "claude-sonnet-4-20250514",
-      max_tokens: 1024,
-      system: SYSTEM_PROMPT,
-      messages: [{ role: "user", content }],
+    const result = await model.generateContent({
+      systemInstruction: SYSTEM_PROMPT,
+      contents: [{ role: "user", parts }],
     });
 
-    const textBlock = message.content.find((block) => block.type === "text");
-    if (!textBlock || textBlock.type !== "text") {
-      throw new Error("No text response from Claude");
-    }
-
-    const result = JSON.parse(textBlock.text);
-    return NextResponse.json(result);
+    const text = result.response.text();
+    const cleaned = text.replace(/```json\n?|\n?```/g, "").trim();
+    const parsed = JSON.parse(cleaned);
+    return NextResponse.json(parsed);
   } catch (error) {
     console.error("API Error:", error);
     const errorMessage =

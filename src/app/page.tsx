@@ -4,11 +4,40 @@ import { useState } from "react";
 
 type UnchikuResult = {
   name: string;
+  nameReading: string;
+  region: string;
+  brewery: string;
+  type: string;
+  description: string;
   trivia: string;
   howToDrink: string;
   bestFor: string;
   oneLiner: string;
 };
+
+const TYPE_EMOJI: Record<string, string> = {
+  "日本酒": "🍶",
+  "ビール": "🍺",
+  "ワイン": "🍷",
+  "ウイスキー": "🥃",
+  "焼酎": "🫗",
+  "ジン": "🍸",
+  "ウォッカ": "🍸",
+  "テキーラ": "🥃",
+  "ラム": "🥃",
+  "リキュール": "🍹",
+  "カクテル": "🍹",
+  "シャンパン": "🥂",
+  "ブランデー": "🥃",
+};
+
+function getTypeEmoji(type?: string): string {
+  if (!type) return "🍶";
+  for (const [key, emoji] of Object.entries(TYPE_EMOJI)) {
+    if (type.includes(key)) return emoji;
+  }
+  return "🍶";
+}
 
 export default function Home() {
   const [sakeName, setSakeName] = useState("");
@@ -75,7 +104,6 @@ export default function Home() {
     <main className="min-h-screen pb-16">
       {/* ヘッダー */}
       <header className="relative pt-6 pb-8 text-center">
-        {/* 提灯デコレーション */}
         <div className="flex justify-center gap-6 mb-4">
           <span className="lantern-swing text-4xl inline-block">🏮</span>
           <span
@@ -107,7 +135,6 @@ export default function Home() {
             お酒を教えてくんなまし
           </h2>
 
-          {/* テキスト入力 */}
           <div className="mb-6">
             <label
               htmlFor="sake-name"
@@ -131,7 +158,6 @@ export default function Home() {
             />
           </div>
 
-          {/* 送信ボタン */}
           <button
             onClick={handleSubmit}
             disabled={loading || !sakeName.trim()}
@@ -162,6 +188,7 @@ export default function Home() {
         {/* ローディング */}
         {loading && (
           <div className="space-y-4 mb-8">
+            <div className="loading-shimmer h-48 rounded-xl" />
             {[1, 2, 3, 4].map((i) => (
               <div key={i} className="loading-shimmer h-28 rounded-xl" />
             ))}
@@ -171,8 +198,65 @@ export default function Home() {
         {/* 結果表示 */}
         {result && (
           <section>
-            <h2 className="font-[family-name:var(--font-yuji-boku)] text-2xl text-center text-navy mb-6">
-              ✨ 「{result.name}」のウンチク ✨
+            {/* 商品情報カード */}
+            <div className="fade-in-up bg-white rounded-2xl border-2 border-brown/15 shadow-lg overflow-hidden mb-6">
+              <div className="flex">
+                {/* 左: アイコン */}
+                <div className="w-28 sm:w-36 bg-cream-dark flex items-center justify-center shrink-0">
+                  <span className="text-6xl sm:text-7xl">{getTypeEmoji(result.type)}</span>
+                </div>
+                {/* 右: 商品情報 */}
+                <div className="flex-1 p-4">
+                  <h2 className="font-[family-name:var(--font-yuji-boku)] text-xl sm:text-2xl text-navy leading-tight">
+                    {result.name}
+                  </h2>
+                  {result.nameReading && (
+                    <p className="text-brown/50 text-sm">（{result.nameReading}）</p>
+                  )}
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    <span className="px-2 py-0.5 bg-red-lantern/10 text-red-lantern text-xs rounded-full font-medium">
+                      {result.type}
+                    </span>
+                    <span className="px-2 py-0.5 bg-navy/10 text-navy text-xs rounded-full font-medium">
+                      📍 {result.region}
+                    </span>
+                  </div>
+                  <p className="text-brown/70 text-sm mt-1">
+                    🏭 {result.brewery}
+                  </p>
+                  <p className="text-brown text-sm mt-2 leading-relaxed">
+                    {result.description}
+                  </p>
+                </div>
+              </div>
+              {/* ECリンク */}
+              <div className="flex border-t border-brown/10">
+                <a
+                  href={`https://www.amazon.co.jp/s?k=${encodeURIComponent(result.name)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex-1 py-3 text-center font-bold text-white
+                             bg-[#FF9900] hover:bg-[#FFB347] transition-all
+                             active:scale-[0.98] text-sm"
+                >
+                  Amazonで探す
+                </a>
+                <a
+                  href={`https://search.rakuten.co.jp/search/mall/${encodeURIComponent(result.name)}/`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex-1 py-3 text-center font-bold text-white
+                             bg-[#BF0000] hover:bg-[#E60033] transition-all
+                             active:scale-[0.98] text-sm border-l border-white/20"
+                >
+                  楽天市場で探す
+                </a>
+              </div>
+            </div>
+
+            {/* ウンチクカード */}
+            <h2 className="font-[family-name:var(--font-yuji-boku)] text-xl text-center text-navy mb-4">
+              📖 ウンチク
             </h2>
             <div className="space-y-4">
               {cards.map((card, i) => (
@@ -203,35 +287,6 @@ export default function Home() {
                   </div>
                 </div>
               ))}
-            </div>
-
-            {/* 購入リンク */}
-            <div className="mt-6 bg-white/70 rounded-2xl border-2 border-brown/20 p-5">
-              <h3 className="font-[family-name:var(--font-yuji-boku)] text-lg text-brown mb-3 text-center">
-                🛒 このお酒を探す
-              </h3>
-              <div className="flex gap-3">
-                <a
-                  href={`https://www.amazon.co.jp/s?k=${encodeURIComponent(result.name)}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex-1 py-3 rounded-xl text-center font-bold text-white
-                             bg-[#FF9900] hover:bg-[#FFB347] transition-all
-                             shadow-md hover:shadow-lg active:scale-[0.98]"
-                >
-                  🅰️ Amazon
-                </a>
-                <a
-                  href={`https://search.rakuten.co.jp/search/mall/${encodeURIComponent(result.name)}/`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex-1 py-3 rounded-xl text-center font-bold text-white
-                             bg-[#BF0000] hover:bg-[#E60033] transition-all
-                             shadow-md hover:shadow-lg active:scale-[0.98]"
-                >
-                  🏪 楽天市場
-                </a>
-              </div>
             </div>
           </section>
         )}

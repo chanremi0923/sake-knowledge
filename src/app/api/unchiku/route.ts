@@ -12,7 +12,12 @@ const SYSTEM_PROMPT = `あなたはお酒に異常に詳しい「酒の達人」
 必ず以下のJSON形式で回答してください。他のテキストは一切含めないでください。
 
 {
-  "name": "お酒の名前",
+  "name": "お酒の正式名称",
+  "nameReading": "名前の読み方（ひらがな）",
+  "region": "産地（都道府県）",
+  "brewery": "酒蔵・メーカー名",
+  "type": "種類（日本酒、ビール、ワイン、ウイスキー、焼酎など）",
+  "description": "お酒の特徴を1〜2文で簡潔に（味わい、香り、特徴など）",
   "trivia": "通ぶれる豆知識（2〜3文。飲み会で披露できる意外な事実や歴史的背景など）",
   "howToDrink": "おすすめの飲み方（2〜3文。温度、グラス、合わせるつまみなど具体的に）",
   "bestFor": "こんな人に合う（1〜2文。性格やシチュエーションで表現。ユーモアを込めて）",
@@ -49,7 +54,7 @@ export async function POST(request: NextRequest) {
       try {
         const completion = await openai.chat.completions.create({
           model,
-          max_tokens: 1024,
+          max_tokens: 2048,
           messages: [
             { role: "system", content: SYSTEM_PROMPT },
             { role: "user", content: `「${name.trim()}」というお酒について教えてください。` },

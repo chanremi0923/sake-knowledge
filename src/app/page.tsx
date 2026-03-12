@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useCallback, type DragEvent } from "react";
+import { useState } from "react";
 
 type UnchikuResult = {
   name: string;
@@ -12,37 +12,12 @@ type UnchikuResult = {
 
 export default function Home() {
   const [sakeName, setSakeName] = useState("");
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const [imageData, setImageData] = useState<string | null>(null);
   const [result, setResult] = useState<UnchikuResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [isDragging, setIsDragging] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const handleImageFile = useCallback((file: File) => {
-    if (!file.type.startsWith("image/")) return;
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const dataUrl = e.target?.result as string;
-      setImagePreview(dataUrl);
-      setImageData(dataUrl);
-    };
-    reader.readAsDataURL(file);
-  }, []);
-
-  const handleDrop = useCallback(
-    (e: DragEvent<HTMLDivElement>) => {
-      e.preventDefault();
-      setIsDragging(false);
-      const file = e.dataTransfer.files[0];
-      if (file) handleImageFile(file);
-    },
-    [handleImageFile]
-  );
 
   const handleSubmit = async () => {
-    if (!sakeName.trim() && !imageData) return;
+    if (!sakeName.trim()) return;
 
     setLoading(true);
     setError(null);
@@ -52,10 +27,7 @@ export default function Home() {
       const res = await fetch("/api/unchiku", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: sakeName.trim() || undefined,
-          image: imageData || undefined,
-        }),
+        body: JSON.stringify({ name: sakeName.trim() }),
       });
 
       const data = await res.json();
@@ -68,12 +40,6 @@ export default function Home() {
     } finally {
       setLoading(false);
     }
-  };
-
-  const clearImage = () => {
-    setImagePreview(null);
-    setImageData(null);
-    if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
   const cards = result
@@ -142,7 +108,7 @@ export default function Home() {
           </h2>
 
           {/* テキスト入力 */}
-          <div className="mb-4">
+          <div className="mb-6">
             <label
               htmlFor="sake-name"
               className="block text-brown-light text-sm font-medium mb-1"
@@ -165,70 +131,10 @@ export default function Home() {
             />
           </div>
 
-          {/* 区切り線 */}
-          <div className="flex items-center gap-3 my-4">
-            <div className="flex-1 h-px bg-brown/20" />
-            <span className="text-brown/40 text-sm">または</span>
-            <div className="flex-1 h-px bg-brown/20" />
-          </div>
-
-          {/* 画像アップロード */}
-          <div className="mb-6">
-            <label className="block text-brown-light text-sm font-medium mb-1">
-              📸 パッケージ写真
-            </label>
-            {imagePreview ? (
-              <div className="relative inline-block">
-                <img
-                  src={imagePreview}
-                  alt="アップロード画像"
-                  className="max-h-48 rounded-xl border-2 border-brown/20"
-                />
-                <button
-                  onClick={clearImage}
-                  className="absolute -top-2 -right-2 w-7 h-7 bg-red-lantern text-white rounded-full
-                             text-sm font-bold hover:bg-red-lantern-light transition-colors cursor-pointer"
-                >
-                  ✕
-                </button>
-              </div>
-            ) : (
-              <div
-                className={`drop-zone rounded-xl p-8 text-center cursor-pointer ${
-                  isDragging ? "dragging" : ""
-                }`}
-                onDragOver={(e) => {
-                  e.preventDefault();
-                  setIsDragging(true);
-                }}
-                onDragLeave={() => setIsDragging(false)}
-                onDrop={handleDrop}
-                onClick={() => fileInputRef.current?.click()}
-              >
-                <p className="text-3xl mb-2">📷</p>
-                <p className="text-brown/60 text-sm">
-                  ここにドラッグ＆ドロップ
-                  <br />
-                  またはクリックして選択
-                </p>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) handleImageFile(file);
-                  }}
-                />
-              </div>
-            )}
-          </div>
-
           {/* 送信ボタン */}
           <button
             onClick={handleSubmit}
-            disabled={loading || (!sakeName.trim() && !imageData)}
+            disabled={loading || !sakeName.trim()}
             className="w-full py-4 rounded-xl text-white text-lg font-bold
                        bg-red-lantern hover:bg-red-lantern-light
                        disabled:opacity-40 disabled:cursor-not-allowed

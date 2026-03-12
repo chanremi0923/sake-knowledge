@@ -1,10 +1,13 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import OpenAI from "openai";
 import { NextRequest, NextResponse } from "next/server";
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
+const openai = new OpenAI({
+  baseURL: "https://openrouter.ai/api/v1",
+  apiKey: process.env.OPENROUTER_API_KEY,
+});
 
 const SYSTEM_PROMPT = `あなたはお酒に異常に詳しい「酒の達人」です。
-ユーザーからお酒の名前や画像を受け取ったら、そのお酒について「知ったかぶり」できるウンチク情報を生成してください。
+ユーザーからお酒の名前を受け取ったら、そのお酒について「知ったかぶり」できるウンチク情報を生成してください。
 
 必ず以下のJSON形式で回答してください。他のテキストは一切含めないでください。
 
@@ -20,57 +23,47 @@ const SYSTEM_PROMPT = `あなたはお酒に異常に詳しい「酒の達人」
 - 楽しく、少し大げさに、でも基本的な事実は正確に
 - 「実はね…」「知ってた？」のような語りかけ口調で
 - 難しい専門用語は避け、飲み会で使える平易な表現で
-- 画像の場合はまずお酒を特定してから回答
 - 知らないお酒の場合は、ジャンルから推測して面白く回答`;
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { name, image } = body as {
-      name?: string;
-      image?: string;
-    };
+    const { name } = body as { name?: string };
 
-    if (!name && !image) {
+    if (!name?.trim()) {
       return NextResponse.json(
-        { error: "お酒の名前か画像を入力してください" },
+        { error: "お酒の名前を入力してください" },
         { status: 400 }
       );
     }
 
-    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+    const models = [
+      "nvidia/nemotron-3-nano-30b-a3b:free",
+      "google/gemma-3-4b-it:free",
+      "stepfun/step-3.5-flash:free",
+    ];
 
-    const parts: Array<{ text: string } | { inlineData: { mimeType: string; data: string } }> = [];
+    let text: string | null = null;
 
-    if (image) {
-      const base64Match = image.match(
-        /^data:(image\/[a-zA-Z+]+);base64,(.+)$/
-      );
-      if (base64Match) {
-        parts.push({
-          inlineData: {
-            mimeType: base64Match[1],
-            data: base64Match[2],
-          },
+    for (const model of models) {
+      try {
+        const completion = await openai.chat.completions.create({
+          model,
+          max_tokens: 1024,
+          messages: [
+            { role: "system", content: SYSTEM_PROMPT },
+            { role: "user", content: `「${name.trim()}」というお酒について教えてください。` },
+          ],
         });
+        text = completion.choices[0]?.message?.content ?? null;
+        if (text) break;
+      } catch {
+        continue;
       }
-      parts.push({
-        text: name
-          ? `この画像のお酒について教えてください。名前は「${name}」です。`
-          : "この画像のお酒について教えてください。画像からお酒を特定して回答してください。",
-      });
-    } else {
-      parts.push({
-        text: `「${name}」というお酒について教えてください。`,
-      });
     }
 
-    const result = await model.generateContent({
-      systemInstruction: SYSTEM_PROMPT,
-      contents: [{ role: "user", parts }],
-    });
+    if (!text) throw new Error("すべてのモデルがビジー状態です。しばらく待ってから再度お試しください");
 
-    const text = result.response.text();
     const cleaned = text.replace(/```json\n?|\n?```/g, "").trim();
     const parsed = JSON.parse(cleaned);
     return NextResponse.json(parsed);

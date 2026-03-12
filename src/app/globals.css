@@ -1,0 +1,95 @@
+@import "tailwindcss";
+
+@theme {
+  --color-cream: #FFF8E7;
+  --color-cream-dark: #F5E6C8;
+  --color-red-lantern: #C62828;
+  --color-red-lantern-light: #EF5350;
+  --color-navy: #1A237E;
+  --color-navy-light: #3949AB;
+  --color-gold: #F9A825;
+  --color-gold-light: #FDD835;
+  --color-brown: #4E342E;
+  --color-brown-light: #6D4C41;
+}
+
+@font-face {
+  font-family: 'ZenMaruGothic';
+  src: local('Zen Maru Gothic');
+  font-display: swap;
+}
+
+body {
+  background-color: var(--color-cream);
+  background-image:
+    radial-gradient(circle, #e8d5b0 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+/* 赤提灯アニメーション */
+@keyframes lantern-swing {
+  0%, 100% { transform: rotate(-3deg); }
+  50% { transform: rotate(3deg); }
+}
+
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes sake-pour {
+  0% { transform: scaleY(0); transform-origin: top; }
+  100% { transform: scaleY(1); transform-origin: top; }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.lantern-swing {
+  animation: lantern-swing 3s ease-in-out infinite;
+  transform-origin: top center;
+}
+
+.fade-in-up {
+  animation: fade-in-up 0.6s ease-out forwards;
+}
+
+.stagger-1 { animation-delay: 0.1s; opacity: 0; }
+.stagger-2 { animation-delay: 0.25s; opacity: 0; }
+.stagger-3 { animation-delay: 0.4s; opacity: 0; }
+.stagger-4 { animation-delay: 0.55s; opacity: 0; }
+
+.loading-shimmer {
+  background: linear-gradient(90deg, #f5e6c8 25%, #fff8e7 50%, #f5e6c8 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+/* 手書き風下線 */
+.hand-underline {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='8'%3E%3Cpath d='M0 6 Q50 0 100 5 T200 4' stroke='%23C62828' fill='none' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: repeat-x;
+  background-position: bottom;
+  background-size: 200px 8px;
+  padding-bottom: 8px;
+}
+
+/* ドラッグ&ドロップエリア */
+.drop-zone {
+  border: 3px dashed var(--color-brown-light);
+  transition: all 0.3s ease;
+}
+
+.drop-zone:hover,
+.drop-zone.dragging {
+  border-color: var(--color-red-lantern);
+  background-color: rgba(198, 40, 40, 0.05);
+}

@@ -6,29 +6,11 @@ const openai = new OpenAI({
   apiKey: process.env.OPENROUTER_API_KEY,
 });
 
-const SYSTEM_PROMPT = `あなたはお酒に異常に詳しい「酒の達人」です。
-ユーザーからお酒の名前を受け取ったら、そのお酒について「知ったかぶり」できるウンチク情報を生成してください。
+const SYSTEM_PROMPT = `お酒の達人として回答。以下のJSON形式のみで回答し、他のテキストは含めないこと。
 
-必ず以下のJSON形式で回答してください。他のテキストは一切含めないでください。
+{"name":"正式名称","nameReading":"ひらがな読み","region":"産地","brewery":"酒蔵・メーカー","type":"種類","description":"特徴1文","trivia":"豆知識2文（飲み会で使える意外な事実）","howToDrink":"おすすめの飲み方2文（温度・グラス・つまみ）","bestFor":"こんな人に合う1文（ユーモア込み）","oneLiner":"ドヤ顔で言える一言"}
 
-{
-  "name": "お酒の正式名称",
-  "nameReading": "名前の読み方（ひらがな）",
-  "region": "産地（都道府県）",
-  "brewery": "酒蔵・メーカー名",
-  "type": "種類（日本酒、ビール、ワイン、ウイスキー、焼酎など）",
-  "description": "お酒の特徴を1〜2文で簡潔に（味わい、香り、特徴など）",
-  "trivia": "通ぶれる豆知識（2〜3文。飲み会で披露できる意外な事実や歴史的背景など）",
-  "howToDrink": "おすすめの飲み方（2〜3文。温度、グラス、合わせるつまみなど具体的に）",
-  "bestFor": "こんな人に合う（1〜2文。性格やシチュエーションで表現。ユーモアを込めて）",
-  "oneLiner": "一言うんちく（ドヤ顔で言えるキャッチーな一言。短く印象的に）"
-}
-
-ルール:
-- 楽しく、少し大げさに、でも基本的な事実は正確に
-- 「実はね…」「知ってた？」のような語りかけ口調で
-- 難しい専門用語は避け、飲み会で使える平易な表現で
-- 知らないお酒の場合は、ジャンルから推測して面白く回答`;
+ルール: 楽しく語りかけ口調で、基本事実は正確に、専門用語は避ける`;
 
 export async function POST(request: NextRequest) {
   try {
@@ -44,33 +26,41 @@ export async function POST(request: NextRequest) {
 
     const models = [
       "nvidia/nemotron-3-nano-30b-a3b:free",
+      "google/gemma-3-12b-it:free",
       "google/gemma-3-4b-it:free",
       "stepfun/step-3.5-flash:free",
     ];
 
-    let text: string | null = null;
+    const messages = [
+      { role: "system" as const, content: SYSTEM_PROMPT },
+      { role: "user" as const, content: `「${name.trim()}」について教えて` },
+    ];
 
+    let parsed = null;
     for (const model of models) {
       try {
         const completion = await openai.chat.completions.create({
           model,
-          max_tokens: 2048,
-          messages: [
-            { role: "system", content: SYSTEM_PROMPT },
-            { role: "user", content: `「${name.trim()}」というお酒について教えてください。` },
-          ],
+          max_tokens: 1024,
+          messages,
         });
-        text = completion.choices[0]?.message?.content ?? null;
-        if (text) break;
-      } catch {
+        const content = completion.choices[0]?.message?.content;
+        if (!content) continue;
+        const cleaned = content
+          .replace(/<think>[\s\S]*?<\/think>/g, "")
+          .replace(/```json\n?|\n?```/g, "")
+          .trim();
+        parsed = JSON.parse(cleaned);
+        if (parsed.name && parsed.trivia) break;
+        parsed = null;
+      } catch (e) {
+        console.error(`Model ${model} failed:`, e instanceof Error ? e.message : e);
         continue;
       }
     }
 
-    if (!text) throw new Error("すべてのモデルがビジー状態です。しばらく待ってから再度お試しください");
+    if (!parsed) throw new Error("すべてのモデルがビジー状態です。しばらく待ってから再度お試しください");
 
-    const cleaned = text.replace(/```json\n?|\n?```/g, "").trim();
-    const parsed = JSON.parse(cleaned);
     return NextResponse.json(parsed);
   } catch (error) {
     console.error("API Error:", error);

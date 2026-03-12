@@ -229,29 +229,6 @@ export default function Home() {
                   </p>
                 </div>
               </div>
-              {/* ECリンク */}
-              <div className="flex border-t border-brown/10">
-                <a
-                  href={`https://www.amazon.co.jp/s?k=${encodeURIComponent(result.name)}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex-1 py-3 text-center font-bold text-white
-                             bg-[#FF9900] hover:bg-[#FFB347] transition-all
-                             active:scale-[0.98] text-sm"
-                >
-                  Amazonで探す
-                </a>
-                <a
-                  href={`https://search.rakuten.co.jp/search/mall/${encodeURIComponent(result.name)}/`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex-1 py-3 text-center font-bold text-white
-                             bg-[#BF0000] hover:bg-[#E60033] transition-all
-                             active:scale-[0.98] text-sm border-l border-white/20"
-                >
-                  楽天市場で探す
-                </a>
-              </div>
             </div>
 
             {/* ウンチクカード */}

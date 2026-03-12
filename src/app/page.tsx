@@ -204,6 +204,35 @@ export default function Home() {
                 </div>
               ))}
             </div>
+
+            {/* 購入リンク */}
+            <div className="mt-6 bg-white/70 rounded-2xl border-2 border-brown/20 p-5">
+              <h3 className="font-[family-name:var(--font-yuji-boku)] text-lg text-brown mb-3 text-center">
+                🛒 このお酒を探す
+              </h3>
+              <div className="flex gap-3">
+                <a
+                  href={`https://www.amazon.co.jp/s?k=${encodeURIComponent(result.name)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex-1 py-3 rounded-xl text-center font-bold text-white
+                             bg-[#FF9900] hover:bg-[#FFB347] transition-all
+                             shadow-md hover:shadow-lg active:scale-[0.98]"
+                >
+                  🅰️ Amazon
+                </a>
+                <a
+                  href={`https://search.rakuten.co.jp/search/mall/${encodeURIComponent(result.name)}/`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex-1 py-3 rounded-xl text-center font-bold text-white
+                             bg-[#BF0000] hover:bg-[#E60033] transition-all
+                             shadow-md hover:shadow-lg active:scale-[0.98]"
+                >
+                  🏪 楽天市場
+                </a>
+              </div>
+            </div>
           </section>
         )}
       </div>
